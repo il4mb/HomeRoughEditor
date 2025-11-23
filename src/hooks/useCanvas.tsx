@@ -1,14 +1,15 @@
 import { Point, Rect } from "@/types";
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 
 export type EventName = "mousedown" | "mousemove" | "mouseup" | "mouseleave" | "mouseenter" | "contextmenu" | 'wheel';
 export type EventListeners = Map<EventName, Map<string, Callback>>;
-export type Callback = (e: MouseEvent) => void;
+export type Callback = (e: React.MouseEvent<SVGSVGElement>) => void;
 export type Unsubscribe = (() => void) | undefined;
 
 
 
 export type CanvasState = {
+    pointer: Point | undefined;
     rect: Rect;
     addListener(event: EventName, callback: Callback): Unsubscribe;
     clientToWorldPoint: (point: Point) => Point;
@@ -34,7 +35,10 @@ function createMouseHook(eventName: EventName) {
         }, deps);
     };
 }
-
+export const usePointer = () => {
+    const context = useCanvas();
+    return useMemo(() => context.pointer, [context.pointer]);
+}
 export const useMouseDown = createMouseHook("mousedown");
 export const useMouseMove = createMouseHook("mousemove");
 export const useMouseUp = createMouseHook("mouseup");

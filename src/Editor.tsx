@@ -21,7 +21,6 @@ export default function Editor({ children }: EditorProps) {
     }], [])
 
     const [data, setData] = useState<PlanData>(() => {
-        // load from localStorage on first render
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             return saved ? JSON.parse(saved) : { walls: [], node: [] };

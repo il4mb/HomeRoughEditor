@@ -1,39 +1,48 @@
 import { Callback, CanvasContext, CanvasState, EventListeners, EventName, Unsubscribe } from '@/hooks/useCanvas';
 import { useEngine } from '@/hooks/useEngine';
 import { Point, Rect } from '@/types';
-import { MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState, WheelEvent } from 'react';
+import { MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FixedGridCanvas from './FixedGridCanvas';
-import Walls from './walls/Walls';
-import GridPoints from './grids/GridPoints';
+import WallsProvider from './walls/WallsProvider';
 
 export interface canvasProps {
     children?: ReactNode;
 }
 export default function Canvas({ }: canvasProps) {
 
-    const [listeners,] = useState<EventListeners>(new Map());
-    const { gridSize, view, updateView } = useEngine();
+    const { gridSize, view, mode, updateView } = useEngine();
+
+    const listeners = useRef<EventListeners>(new Map());
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const [pointer, setPointer] = useState<Point>();
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragPivot, setDragPivot] = useState<Point>();
     const [rect, setRect] = useState<Rect>({ width: 0, height: 0, x: 0, y: 0 });
+
     const viewBox = useMemo(() => `0 0 ${rect.width} ${rect.height}`, [rect]);
+    const viewTransform = useMemo(() =>
+        `translate(${-view.x * view.zoom}, ${-view.y * view.zoom}) scale(${view.zoom})`,
+        [view.x, view.y, view.zoom]
+    );
 
     const invokeListeners = useCallback((event: EventName, e: MouseEvent) => {
-        listeners.get(event)?.forEach((callback) => {
+        listeners.current.get(event)?.forEach((callback) => {
             try {
                 callback(e as any);
             } catch (e) {
                 console.error(e);
             }
         });
-    }, [listeners]);
+    }, []);
 
     const addListener = useCallback((event: EventName, callback: Callback): Unsubscribe => {
-        let eventMap = listeners.get(event);
+        let eventMap = listeners.current.get(event);
         if (!eventMap) {
             eventMap = new Map();
-            listeners.set(event, eventMap);
+            listeners.current.set(event, eventMap);
         }
 
         const id = crypto.randomUUID();
@@ -42,7 +51,7 @@ export default function Canvas({ }: canvasProps) {
         return () => {
             eventMap?.delete(id);
         };
-    }, [listeners]);
+    }, []);
 
     const clientToWorldPoint = useCallback(({ x, y }: Point): Point => {
         const svg = svgRef.current;
@@ -67,26 +76,58 @@ export default function Canvas({ }: canvasProps) {
     const handleContextMenu = (e: MouseEvent) => {
         e.preventDefault();
         invokeListeners("contextmenu", e);
+        setDragPivot(undefined);
+        setIsDragging(false);
     }
 
-    const handleMouseDown = useCallback((e: MouseEvent) => {
+    const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
         invokeListeners("mousedown", e);
         if (e.isDefaultPrevented()) return;
-    }, [clientToWorldPoint, invokeListeners]);
+
+        if (mode === 'pan' && e.button === 0) {
+            setIsDragging(true);
+            setDragPivot({ x: e.clientX, y: e.clientY });
+            e.currentTarget.style.cursor = 'grabbing';
+        }
+    }, [mode, invokeListeners]);
 
 
-    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+        
+        const world = clientToWorldPoint({ x: e.clientX, y: e.clientY });
+        setPointer(world);
+
+        e.currentTarget.style.cursor = mode === 'pan' ? 'grab' : 'default';
+        if (isDragging && dragPivot) {
+            e.currentTarget.style.cursor = 'grabbing';
+        }
+
         invokeListeners("mousemove", e);
         if (e.isDefaultPrevented()) return;
-    }, [clientToWorldPoint, invokeListeners]);
 
-    // Then use it in handleMouseUp:
-    const handleMouseUp = useCallback((e: MouseEvent) => {
+        if (isDragging && dragPivot) {
+            const deltaX = (dragPivot.x - e.clientX) / view.zoom;
+            const deltaY = (dragPivot.y - e.clientY) / view.zoom;
+
+            updateView({
+                x: view.x + deltaX,
+                y: view.y + deltaY
+            });
+            setDragPivot({ x: e.clientX, y: e.clientY });
+        }
+    }, [clientToWorldPoint, invokeListeners, updateView, view, isDragging, dragPivot, mode]);
+
+    const handleMouseUp = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+        setIsDragging(false);
+        setDragPivot(undefined);
         invokeListeners("mouseup", e);
-        if (e.isDefaultPrevented()) return;
-    }, [clientToWorldPoint, invokeListeners]);
+        e.currentTarget.style.cursor = mode === 'pan' ? 'grab' : 'default';
+    }, [mode, invokeListeners]);
 
     const handleMouseLeave = useCallback((e: MouseEvent) => {
+        setPointer(undefined);
+        setIsDragging(false);
+        setDragPivot(undefined);
         invokeListeners("mouseleave", e);
         if (e.isDefaultPrevented()) return;
     }, [clientToWorldPoint, invokeListeners]);
@@ -96,7 +137,7 @@ export default function Canvas({ }: canvasProps) {
         if (e.isDefaultPrevented()) return;
     }, [clientToWorldPoint, invokeListeners]);
 
-    const handleWheel = useCallback((e: WheelEvent) => {
+    const handleWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
         invokeListeners("wheel", e);
         if (e.isDefaultPrevented()) return;
         e.preventDefault();
@@ -107,20 +148,25 @@ export default function Canvas({ }: canvasProps) {
 
         const zoomIntensity = 0.001;
         const delta = -e.deltaY * zoomIntensity;
-        const newZoom = Math.max(0.1, Math.min(10, view.zoom + delta));
 
-        // Get mouse position in world coordinates before zoom
-        const mouseWorldPos = clientToWorldPoint({ x: e.clientX, y: e.clientY });
+        // Apply zoom with exponential curve for smoother experience
+        const zoomFactor = 1 + delta;
+        const newZoom = Math.max(0.1, Math.min(10, view.zoom * zoomFactor));
 
-        // Calculate new view position to zoom to mouse pointer
-        const newX = mouseWorldPos.x - (mouseX / newZoom);
-        const newY = mouseWorldPos.y - (mouseY / newZoom);
+        // Calculate zoom center in world coordinates
+        const worldX = (mouseX / view.zoom) + view.x;
+        const worldY = (mouseY / view.zoom) + view.y;
+
+        // Adjust view to zoom around mouse position
+        const newX = worldX - (mouseX / newZoom);
+        const newY = worldY - (mouseY / newZoom);
+
         updateView({
             zoom: newZoom,
             x: newX,
             y: newY
         });
-    }, [clientToWorldPoint, invokeListeners]);
+    }, [view, updateView, invokeListeners]);
 
     useEffect(() => {
         if (rect.width > 0 && rect.height > 0 && !isInitialized) {
@@ -154,11 +200,12 @@ export default function Canvas({ }: canvasProps) {
 
 
     const value = useMemo<CanvasState>(() => ({
+        pointer,
         rect,
         clientToWorldPoint,
         worldToScreenPoint,
         addListener
-    }), [rect, clientToWorldPoint, worldToScreenPoint, addListener]);
+    }), [rect, pointer, clientToWorldPoint, worldToScreenPoint, addListener]);
 
     return (
         <CanvasContext.Provider value={value}>
@@ -179,12 +226,19 @@ export default function Canvas({ }: canvasProps) {
                     onWheel={handleWheel}
                     width={'100%'}
                     height={'100%'}
-                    viewBox={viewBox} 
+                    viewBox={viewBox}
                     xmlns="http://www.w3.org/2000/svg">
-                    <g transform={`translate(${-view.x * view.zoom}, ${-view.y * view.zoom}) scale(${view.zoom})`}>
-                        <circle cx={0} cy={0} r={4} fill='orange' />
-                        <GridPoints />
-                        <Walls />
+                    <g transform={viewTransform}>
+                        {/* <GridPoints /> */}
+                        <g style={{ transformOrigin: "center" }}>
+                            <WallsProvider />
+                        </g>
+                        <circle
+                            cx={0}
+                            cy={0}
+                            r={4}
+                            fill='orange'
+                            opacity={0.4} />
                     </g>
 
                     {/* Debug info */}

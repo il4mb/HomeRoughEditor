@@ -1,3 +1,5 @@
+import { LineSegment } from "@/utils/line2d";
+
 export interface Point {
     x: number;
     y: number;
@@ -22,7 +24,7 @@ export interface Engine {
 
 export interface Wall {
     id: string;
-    points: [Point, Point],
+    points: LineSegment,
     thickness: number;
 }
 export interface Node {

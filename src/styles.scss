@@ -13,6 +13,7 @@
 
         & .wall-point-handle {
             transition: all .2s ease;
+
             &:hover {
                 transform: scale(2);
             }
@@ -30,12 +31,15 @@
         height: 100%;
         overflow: hidden;
         background: #f5f2d4;
+        user-select: none;
+
         & svg {
             position: relative;
             fill: transparent;
             background: transparent;
             z-index: 9;
         }
+
         & .grid-canvas {
             position: absolute;
             top: 0;
@@ -70,5 +74,30 @@
         opacity: .5;
         cursor: not-allowed;
         pointer-events: none;
+    }
+}
+
+
+
+.animate-breath {
+    --breath-duration: 1.6s;
+    --breath-scale: 1.5;
+    --breath-opacity: 0.85;
+
+    animation: breath var(--breath-duration) ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+@keyframes breath {
+  0%   { scale: 1; }
+  50%  { scale: var(--breath-scale); opacity: var(--breath-opacity);}
+  100% { scale: 1; }
+}
+
+/* accessibility: respect user motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .animate-breath {
+        animation: none;
     }
 }
