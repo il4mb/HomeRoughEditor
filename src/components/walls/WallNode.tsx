@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Line2 from '@/utils/line2d';
 import WallUtils from '@/utils/wallUtils';
 import Poly2 from '@/utils/polygon2d';
-import { useWallsPolygon } from '@/hooks/useWalls';
+import { useWallsPolygon } from '@/hooks/useWallEngine';
 import Vec2 from '@/utils/vec2d';
 
 export interface WallProps {
@@ -20,7 +20,7 @@ export default function WallNode({ wall }: WallProps) {
 
     const { scalePixel } = useEngine();
     const { snapGrid } = useSnap();
-    const { updateWall, addWall, removeWall, data } = useEditor();
+    const { updateWall, addWall, removeWalls: removeWall, data } = useEditor();
     const { clientToWorldPoint } = useCanvas();
     const wallsPolygon = useWallsPolygon();
     const polygon = useMemo(() => wallsPolygon.get(wall.id) || [], [wall.id, wallsPolygon]);

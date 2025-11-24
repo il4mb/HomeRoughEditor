@@ -19,13 +19,25 @@ export const useEditor = () => {
         setData(prev => ({
             ...prev,
             walls: prev.walls.map(w => w.id === id ? { ...w, ...partial } : w)
-        })), [])
+        })), []);
 
-    const removeWall = useCallback((id: string) =>
+    const updateWalls = useCallback((ids: string[], partials: Partial<Wall>[]) =>
         setData(prev => ({
             ...prev,
-            walls: prev.walls.filter(w => w.id !== id)
+            walls: prev.walls.map(w => {
+                const index = ids.indexOf(w.id);
+                return index !== -1 ? { ...w, ...partials[index] } : w;
+            })
         })), []);
+
+
+    const removeWalls = useCallback((id: string) => {
+        const ids = Array.isArray(id) ? id : [id];
+        setData(prev => ({
+            ...prev,
+            walls: prev.walls.filter(w => !ids.includes(w.id))
+        }));
+    }, []);
 
     const addNode = useCallback((node: Node) =>
         setData(prev => ({ ...prev, nodes: [...prev.node, node] })), []);
@@ -47,7 +59,8 @@ export const useEditor = () => {
         setData,
         addWall,
         updateWall,
-        removeWall,
+        updateWalls,
+        removeWalls,
         addNode,
         updateNode,
         removeNode

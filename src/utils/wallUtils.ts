@@ -8,6 +8,10 @@ export interface Wall {
     points: LineSegment;
     thickness: number;
 }
+export interface WallConnect {
+    wall: Wall;
+    index: number;
+}
 
 export interface WallOverlap {
     wallA: Wall;
@@ -41,8 +45,8 @@ const WallUtils = {
         const pEnd = wall.points[1];
 
         // 1. Cari neighbors
-        const startNeighbors = this.findConnectedAtPoint(pStart, allWalls, wall);
-        const endNeighbors = this.findConnectedAtPoint(pEnd, allWalls, wall);
+        const startNeighbors = this.findConnectedAtPoint(pStart, allWalls, wall).map(con => con.wall);
+        const endNeighbors = this.findConnectedAtPoint(pEnd, allWalls, wall).map(con => con.wall);
 
         // 2. Hitung sudut-sudut miter menggunakan logika interseksi garis
         // Arah P1 -> P2
@@ -239,11 +243,17 @@ const WallUtils = {
     },
 
 
-    findConnectedAtPoint(point: Point, allWalls: Wall[], excludeWall?: Wall): Wall[] {
+    findConnectedAtPoint(point: Point, allWalls: Wall[], excludeWall?: Wall): WallConnect[] {
         return allWalls.filter(w =>
             w !== excludeWall &&
             (Vec2.equal(w.points[0], point) || Vec2.equal(w.points[1], point))
-        );
+        ).map(wall => {
+            const index = wall.points.findIndex(p => Vec2.equal(p, point));
+            return {
+                index,
+                wall
+            }
+        })
     },
     /**
      * Group walls by connectivity
@@ -380,8 +390,8 @@ const WallUtils = {
         return null;
     },
     /**
- * Check for perpendicular wall connections
- */
+     * Check for perpendicular wall connections
+     */
     checkPerpendicularConnections(wallA: Wall, wallB: Wall, tolerance: number): NearestWallResult | null {
         const angle = Math.abs(Line2.angleBetween(wallA.points, wallB.points));
         const isPerpendicular = Math.abs(angle - Math.PI / 2) < 0.1; // ~5.7 degrees tolerance

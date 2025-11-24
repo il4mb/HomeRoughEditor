@@ -1,25 +1,35 @@
 import { useEditor } from '@/hooks/useEditor';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEngine } from '@/hooks/useEngine';
 import WallDrawer from './WallDrawer';
-import { useWallGeometry, WallsPolygonContext } from '@/hooks/useWalls';
+import { useWallGeometry, WallEngineContext, WallEngineState } from '@/hooks/useWallEngine';
 import WallVerticlesManager from './WallVerticlesManager';
 import Poly2 from '@/utils/polygon2d';
 import WallLinesManager from './WallLinesManager';
 
 
-export interface WallProps {
-
-}
-export default function WallsProvider({ }: WallProps) {
+export default function WallEngine() {
 
     const { mode } = useEngine();
     const { data } = useEditor();
     const walls = useMemo(() => data.walls, [data.walls]);
     const { wallsPolygon } = useWallGeometry(walls);
+    const [wMode, setWMode] = useState<WallEngineState['mode']>(undefined);
+
+    useEffect(() => {
+        console.log(wMode)
+    }, [wMode])
+
+    const value = useMemo<WallEngineState>(() => ({
+        wallsPolygon,
+        mode: wMode,
+        setMode(newMode) {
+            setWMode(newMode);
+        }
+    }), [wallsPolygon, wMode]);
 
     return (
-        <WallsPolygonContext.Provider value={{ wallsPolygon }}>
+        <WallEngineContext.Provider value={value}>
             <g id='walls'>
                 {walls.map((wall, i) => (
                     <path
@@ -41,6 +51,6 @@ export default function WallsProvider({ }: WallProps) {
                     <WallDrawer />
                 </>
             )}
-        </WallsPolygonContext.Provider>
+        </WallEngineContext.Provider>
     );
 }

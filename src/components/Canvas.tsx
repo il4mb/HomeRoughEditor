@@ -3,7 +3,7 @@ import { useEngine } from '@/hooks/useEngine';
 import { Point, Rect } from '@/types';
 import { MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FixedGridCanvas from './FixedGridCanvas';
-import WallsProvider from './walls/WallsProvider';
+import WallEngine from './walls/WallEngine';
 
 export interface canvasProps {
     children?: ReactNode;
@@ -231,7 +231,7 @@ export default function Canvas({ }: canvasProps) {
                     <g transform={viewTransform}>
                         {/* <GridPoints /> */}
                         <g style={{ transformOrigin: "center" }}>
-                            <WallsProvider />
+                            <WallEngine />
                         </g>
                         <circle
                             cx={0}

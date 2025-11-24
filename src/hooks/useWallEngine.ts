@@ -5,20 +5,23 @@ import WallUtils from "@/utils/wallUtils";
 import { Polygon } from '@/utils/polygon2d';
 import { useEditor } from './useEditor';
 
-type WallsState = {
+
+export type WallEngineState = {
     wallsPolygon: Map<string, Polygon>;
+    mode: "line-hover" | "line-drag" | "vert-hover" | "vert-drag" | undefined;
+    setMode(mode: WallEngineState['mode']): void;
 }
 const hasWallChanged = (w1: Wall, w2: Wall) => {
     if (w1.thickness !== w2.thickness) return true;
     return !Vec2.equal(w1.points[0], w2.points[0]) || !Vec2.equal(w1.points[1], w2.points[1]);
 };
-const useWallsContextProvider = () => {
-    const ctx = useContext(WallsPolygonContext);
+export const useWallEngine = () => {
+    const ctx = useContext(WallEngineContext);
     if (!ctx) throw new Error("useWallsPolygonProvider should call inside <WallsPolygonProvider/>")
     return ctx;
 }
 
-export const WallsPolygonContext = createContext<WallsState | undefined>(undefined);
+export const WallEngineContext = createContext<WallEngineState | undefined>(undefined);
 export const useWallGeometry = (walls: Wall[]) => {
 
     // Store polygons in a map for O(1) read/write
@@ -47,7 +50,7 @@ export const useWallGeometry = (walls: Wall[]) => {
                 const neighbors = WallUtils.findConnectedAtPoint(wall.points[0], walls, wall)
                     .concat(WallUtils.findConnectedAtPoint(wall.points[1], walls, wall));
 
-                neighbors.forEach(n => dirtyIds.add(n.id));
+                neighbors.forEach(n => dirtyIds.add(n.wall.id));
 
                 // If it existed before, Add Neighbors of the PREVIOUS position 
                 // (In case we broke a connection by moving it away)
@@ -119,11 +122,11 @@ export const useWallGeometry = (walls: Wall[]) => {
 
 // For Clients
 export const useWallPolygon = (id: string) => {
-    const context = useWallsContextProvider();
+    const context = useWallEngine();
     return useMemo(() => context.wallsPolygon.get(id), [context.wallsPolygon, id]);
 }
 export const useWallsPolygon = () => {
-    const context = useWallsContextProvider();
+    const context = useWallEngine();
     return useMemo(() => context.wallsPolygon, [context.wallsPolygon]);
 }
 export const useClearInvalidWalls = () => {
