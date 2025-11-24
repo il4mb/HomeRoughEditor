@@ -6,6 +6,9 @@ import { useWallGeometry, WallEngineContext, WallEngineState } from '@/hooks/use
 import WallVerticlesManager from './WallVerticlesManager';
 import Poly2 from '@/utils/polygon2d';
 import WallLinesManager from './WallLinesManager';
+import WallSlicer from './WallSlicer';
+import WallOverlapSlicer from './WallOverlapSlicer';
+import WallEraser from './WallEraser';
 
 
 export default function WallEngine() {
@@ -30,6 +33,7 @@ export default function WallEngine() {
 
     return (
         <WallEngineContext.Provider value={value}>
+
             <g id='walls'>
                 {walls.map((wall, i) => (
                     <path
@@ -44,13 +48,23 @@ export default function WallEngine() {
                         fillRule="nonzero" />
                 ))}
             </g>
+
             <WallLinesManager walls={walls} />
+            {mode == "slice-wall" && (
+                <WallSlicer walls={walls} />
+            )}
+            {mode == "eraser" && (
+                <WallEraser walls={walls} />
+            )}
+
             <WallVerticlesManager walls={walls} />
             {mode == "wall" && (
                 <>
                     <WallDrawer />
                 </>
             )}
+
+            <WallOverlapSlicer walls={walls} />
         </WallEngineContext.Provider>
     );
 }

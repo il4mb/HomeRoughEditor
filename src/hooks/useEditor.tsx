@@ -13,7 +13,8 @@ export const useEditor = () => {
     if (!ctx) throw new Error("useEditor should call inside EditorProvider");
     const { data, setData } = ctx;
 
-    const addWall = (wall: Omit<Wall, 'id'>) => setData(prev => ({ ...prev, walls: [...prev.walls, { ...wall, id: nanoid() }] }));
+    const addWall = (patch: Omit<Wall, 'id'>) => setData(prev => ({ ...prev, walls: [...prev.walls, { ...patch, id: nanoid() }] }));
+    const addWalls = (patches: Omit<Wall, 'id'>[]) => setData(prev => ({ ...prev, walls: [...prev.walls, ...(patches.map(wall => ({ ...wall, id: nanoid() })))] }));
 
     const updateWall = useCallback((id: string, partial: Partial<Wall>) =>
         setData(prev => ({
@@ -31,7 +32,7 @@ export const useEditor = () => {
         })), []);
 
 
-    const removeWalls = useCallback((id: string) => {
+    const removeWalls = useCallback((id: string | string[]) => {
         const ids = Array.isArray(id) ? id : [id];
         setData(prev => ({
             ...prev,
@@ -58,6 +59,7 @@ export const useEditor = () => {
         data,
         setData,
         addWall,
+        addWalls,
         updateWall,
         updateWalls,
         removeWalls,

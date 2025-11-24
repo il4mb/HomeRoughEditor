@@ -129,7 +129,7 @@ export const useWallsPolygon = () => {
     const context = useWallEngine();
     return useMemo(() => context.wallsPolygon, [context.wallsPolygon]);
 }
-export const useClearInvalidWalls = () => {
+export const useClearShortWalls = () => {
 
     const { data, setData } = useEditor();
     const invalidWalls = useMemo(() => {

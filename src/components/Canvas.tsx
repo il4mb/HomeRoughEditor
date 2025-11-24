@@ -4,6 +4,7 @@ import { Point, Rect } from '@/types';
 import { MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FixedGridCanvas from './FixedGridCanvas';
 import WallEngine from './walls/WallEngine';
+import CanvasPortal from './CanvasPortal';
 
 export interface canvasProps {
     children?: ReactNode;
@@ -93,7 +94,7 @@ export default function Canvas({ }: canvasProps) {
 
 
     const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-        
+
         const world = clientToWorldPoint({ x: e.clientX, y: e.clientY });
         setPointer(world);
 
@@ -198,7 +199,6 @@ export default function Canvas({ }: canvasProps) {
         }
     }, [containerRef]);
 
-
     const value = useMemo<CanvasState>(() => ({
         pointer,
         rect,
@@ -216,40 +216,42 @@ export default function Canvas({ }: canvasProps) {
                     zoom={view.zoom}
                     gridSize={gridSize}
                     viewOffset={view} />
-                <svg ref={svgRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
-                    onMouseEnter={handleMouseEnter}
-                    onContextMenu={handleContextMenu}
-                    onWheel={handleWheel}
-                    width={'100%'}
-                    height={'100%'}
-                    viewBox={viewBox}
-                    xmlns="http://www.w3.org/2000/svg">
-                    <g transform={viewTransform}>
-                        {/* <GridPoints /> */}
-                        <g style={{ transformOrigin: "center" }}>
-                            <WallEngine />
+                <CanvasPortal>
+                    <svg ref={svgRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseLeave}
+                        onMouseEnter={handleMouseEnter}
+                        onContextMenu={handleContextMenu}
+                        onWheel={handleWheel}
+                        width={'100%'}
+                        height={'100%'}
+                        viewBox={viewBox}
+                        xmlns="http://www.w3.org/2000/svg">
+                        <g transform={viewTransform}>
+                            {/* <GridPoints /> */}
+                            <g style={{ transformOrigin: "center" }}>
+                                <WallEngine />
+                            </g>
+                            <circle
+                                cx={0}
+                                cy={0}
+                                r={4}
+                                fill='orange'
+                                opacity={0.4} />
                         </g>
-                        <circle
-                            cx={0}
-                            cy={0}
-                            r={4}
-                            fill='orange'
-                            opacity={0.4} />
-                    </g>
 
-                    {/* Debug info */}
-                    <text x="10" y="20" fill="#888" fontSize="12" fontFamily="monospace">
-                        Zoom: {view.zoom.toFixed(2)} | View: ({view.x.toFixed(1)}, {view.y.toFixed(1)})
-                    </text>
+                        {/* Debug info */}
+                        <text x="10" y="20" fill="#888" fontSize="12" fontFamily="monospace">
+                            Zoom: {view.zoom.toFixed(2)} | View: ({view.x.toFixed(1)}, {view.y.toFixed(1)})
+                        </text>
 
-                    <text x="10" y="50" fill="#10b981" fontSize="12" fontFamily="monospace">
-                        Center: (0,0) is at center of canvas
-                    </text>
-                </svg>
+                        <text x="10" y="50" fill="#10b981" fontSize="12" fontFamily="monospace">
+                            Center: (0,0) is at center of canvas
+                        </text>
+                    </svg>
+                </CanvasPortal>
             </div>
         </CanvasContext.Provider>
     );

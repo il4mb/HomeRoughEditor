@@ -1,3 +1,8 @@
+@font-face {
+    font-family: Figtree;
+    src: url("./Figtree.ttf") format("truetype");
+}
+
 * {
     box-sizing: border-box;
     padding: 0;
@@ -10,6 +15,7 @@
         width: 100dvw;
         height: 100dvh;
         display: flex;
+        font-family: Figtree, Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
 
         & .wall-point-handle {
             transition: all .2s ease;
@@ -47,6 +53,29 @@
             right: 0;
             bottom: 0;
             z-index: 1;
+        }
+
+        & .canvas-portal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            pointer-events: none;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+            justify-content: start;
+            gap: 10px;
+            & > .portal-slot {
+                // border: 2px solid #262626b0;
+                // border-radius: 12px;
+                // background-color: #ffffffce;
+                // color: #161616;
+                // padding: 12px;
+                // min-width: 300px;
+                // box-shadow: 0px 0px 1px #0005, 0px 0px 5px #0002;
+            }
         }
     }
 }
@@ -90,9 +119,18 @@
 }
 
 @keyframes breath {
-  0%   { scale: 1; }
-  50%  { scale: var(--breath-scale); opacity: var(--breath-opacity);}
-  100% { scale: 1; }
+    0% {
+        scale: 1;
+    }
+
+    50% {
+        scale: var(--breath-scale);
+        opacity: var(--breath-opacity);
+    }
+
+    100% {
+        scale: 1;
+    }
 }
 
 /* accessibility: respect user motion preference */

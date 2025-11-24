@@ -26,6 +26,7 @@ export interface Wall {
     id: string;
     points: LineSegment,
     thickness: number;
+    floor: number;
 }
 export interface Node {
     id: string;
